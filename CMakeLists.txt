@@ -12,10 +12,19 @@ add_executable(hashtool
 
 find_library(CRYPTOPP_LIB cryptopp)
 if(NOT CRYPTOPP_LIB)
-    message(FATAL_ERROR "Khong tim thay thu vien Crypto++ (cryptopp). Hay cai libcrypto++-dev.")
+    message(FATAL_ERROR "Khong tim thay thu vien Crypto++ (cryptopp).")
 endif()
 
 target_link_libraries(hashtool PRIVATE ${CRYPTOPP_LIB})
+
+# --- certtool: phan tich X.509, dung OpenSSL ---
+find_package(OpenSSL REQUIRED)
+
+add_executable(certtool
+    src/certtool_main.cpp
+    src/cert_parser.cpp
+)
+target_link_libraries(certtool PRIVATE OpenSSL::Crypto)
 
 # --- Unit test (Catch2 ban amalgamated) ---
 enable_testing()
