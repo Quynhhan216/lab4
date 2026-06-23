@@ -17,7 +17,6 @@ endif()
 
 target_link_libraries(hashtool PRIVATE ${CRYPTOPP_LIB})
 
-# --- certtool: phan tich X.509, dung OpenSSL ---
 find_package(OpenSSL REQUIRED)
 
 add_executable(certtool
@@ -26,7 +25,12 @@ add_executable(certtool
 )
 target_link_libraries(certtool PRIVATE OpenSSL::Crypto)
 
-# --- Unit test (Catch2 ban amalgamated) ---
+add_executable(bench_hash
+    bench/bench_hash.cpp
+    src/hash_engine.cpp
+)
+target_link_libraries(bench_hash PRIVATE ${CRYPTOPP_LIB})
+
 enable_testing()
 
 add_executable(hashtool_tests
