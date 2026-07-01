@@ -1,3 +1,0 @@
-[
-  {"algo": "sha256", "input_text": "abc", "expected_hex": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"}
-]
