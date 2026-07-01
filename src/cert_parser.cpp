@@ -28,18 +28,40 @@ static std::string X509NameToString(X509_NAME* name) {
     return result;
 }
 
-bool PrintCertInfo(const std::string& pemPath) {
-    BIO* bio = BIO_new_file(pemPath.c_str(), "r");
-    if (!bio) {
-        std::cerr << "Khong mo duoc file: " << pemPath << "\n";
-        return false;
-    }
-
+static X509* LoadCertFromFile(const std::string& path) {
+    BIO* bio = BIO_new_file(path.c_str(), "r");
+    if (!bio) return nullptr;
     X509* cert = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
     BIO_free(bio);
+    return cert;
+}
 
+// Kiem tra "TBS structure integrity" va "algorithm consistency" khi KHONG co
+// issuer public key de verify chu ky day du.
+static bool CheckStructureAndAlgorithmConsistency(X509* cert) {
+    unsigned char* tbsDer = nullptr;
+    int tbsLen = i2d_re_X509_tbs(cert, &tbsDer);
+    bool structureOk = (tbsLen > 0 && tbsDer != nullptr);
+    if (tbsDer) OPENSSL_free(tbsDer);
+
+    const X509_ALGOR* outerAlg = nullptr;
+    X509_get0_signature(nullptr, &outerAlg, cert);
+    const X509_ALGOR* tbsAlg = X509_get0_tbs_sigalg(cert);
+
+    bool algorithmConsistent = (outerAlg != nullptr && tbsAlg != nullptr &&
+                                 X509_ALGOR_cmp(outerAlg, tbsAlg) == 0);
+
+    std::cout << "  - TBS structure integrity: " << (structureOk ? "OK" : "THAT BAI") << "\n";
+    std::cout << "  - Algorithm consistency (TBS vs outer): "
+               << (algorithmConsistent ? "OK" : "THAT BAI (khong khop)") << "\n";
+
+    return structureOk && algorithmConsistent;
+}
+
+bool PrintCertInfo(const std::string& pemPath, const std::string& issuerPemPath) {
+    X509* cert = LoadCertFromFile(pemPath);
     if (!cert) {
-        std::cerr << "Khong parse duoc X.509 certificate.\n";
+        std::cerr << "Khong doc/parse duoc X.509 certificate: " << pemPath << "\n";
         return false;
     }
 
@@ -93,8 +115,44 @@ bool PrintCertInfo(const std::string& pemPath) {
         std::cout << "Subject Alternative Names: (khong co extension nay)\n";
     }
 
+    bool result = true;
+
+    if (!issuerPemPath.empty()) {
+        X509* issuerCert = LoadCertFromFile(issuerPemPath);
+        if (!issuerCert) {
+            std::cerr << "Signature Verification: THAT BAI (khong doc duoc issuer cert: "
+                      << issuerPemPath << ")\n";
+            X509_free(cert);
+            return false;
+        }
+        EVP_PKEY* issuerPubKey = X509_get_pubkey(issuerCert);
+        if (!issuerPubKey) {
+            std::cerr << "Signature Verification: THAT BAI (khong doc duoc public key cua issuer)\n";
+            X509_free(issuerCert);
+            X509_free(cert);
+            return false;
+        }
+
+        int verifyRc = X509_verify(cert, issuerPubKey);
+        if (verifyRc == 1) {
+            std::cout << "Signature Verification: HOP LE (da xac minh bang public key cua issuer)\n";
+            result = true;
+        } else {
+            std::cout << "Signature Verification: KHONG HOP LE (chu ky khong khop voi issuer duoc cung cap)\n";
+            result = false;
+        }
+
+        EVP_PKEY_free(issuerPubKey);
+        X509_free(issuerCert);
+    } else {
+        std::cout << "Signature Verification: KHONG THE XAC MINH DAY DU (khong co issuer public key)\n";
+        std::cout << "  Chi kiem tra duoc cac dieu kien sau (khong thay the cho xac minh chu ky):\n";
+        bool structOk = CheckStructureAndAlgorithmConsistency(cert);
+        result = structOk;
+    }
+
     X509_free(cert);
-    return true;
+    return result;
 }
 
 } // namespace certtool

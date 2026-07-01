@@ -1,0 +1,6 @@
+[req]
+distinguished_name = dn
+prompt = no
+[dn]
+CN = Lab4 Test CA
+O = Cryptography Lab
