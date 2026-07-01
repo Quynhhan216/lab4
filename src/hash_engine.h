@@ -3,14 +3,12 @@
 
 namespace hashtool {
 
-// Hash mot file. outputLenBytes chi dung cho SHAKE128/256 (don vi: byte).
-std::string HashFileHex(const std::string& algo,
-                         const std::string& filepath,
-                         int outputLenBytes = -1);
+std::string HashFileHex(const std::string& algo, const std::string& filepath, int outputLenBytes = -1);
+std::string HashTextHex(const std::string& algo, const std::string& text, int outputLenBytes = -1);
 
-// Hash truc tiep mot chuoi byte trong RAM (dung cho --text va cho KAT runner).
-std::string HashTextHex(const std::string& algo,
-                         const std::string& text,
-                         int outputLenBytes = -1);
+// Tra ve du lieu hash duoi dang RAW BYTES (khong ma hoa), dung de --encode tu chon
+// hex/base64/raw o lop CLI.
+std::string HashFileRaw(const std::string& algo, const std::string& filepath, int outputLenBytes = -1);
+std::string HashTextRaw(const std::string& algo, const std::string& text, int outputLenBytes = -1);
 
 } // namespace hashtool
